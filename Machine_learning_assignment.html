@@ -303,8 +303,8 @@ confusionMatrix(inSampleFit,harTrain$classe)$table</code></pre>
 ##        1</code></pre>
 </div>
 
-
-<h4>7. Prediction on the final test set</h4>
+<div id="prediction-on-the-final-test-set" class="section level4">
+<h4>6. Prediction on the final test set</h4>
 <p>As requested in the assignment description, we need to use the chosen model to predict the classe outcome for 20 individual fresh records.<br />To do so, I’ve loaded and preprocessed the csv file in the same way as the training+test sets before, and then, apply the predict function over the new test set.</p>
 <pre class="r"><code># Loading the raw data
 fileName &lt;- paste(getwd(),&quot;/pml-testing.csv&quot;,sep=&quot;&quot;)
@@ -338,7 +338,7 @@ testData[,c(&quot;X&quot;,&quot;user_name&quot;,&quot;PredictedClass&quot;)]</co
 ## 20 20    eurico              B</code></pre>
 </div>
 <div id="file-generation-for-answer-submission" class="section level4">
-<h4>8. File generation for answer submission</h4>
+<h4>7. File generation for answer submission</h4>
 <p>Using the provided function to export the results of the predictions</p>
 <pre class="r"><code>answers = predRF80Test
 pml_write_files = function(x){
