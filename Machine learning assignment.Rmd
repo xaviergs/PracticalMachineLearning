@@ -13,7 +13,7 @@ library(ipred)
 library(nnet)
 
 options(scipen = 7)
-options(digits = 3)
+options(digits = 4)
 
 opts_chunk$set(warning = FALSE)
 windowsFonts(A=windowsFont("Trebuchet MS"))
@@ -103,6 +103,81 @@ xdfSets <- xtable(dfSets)
 print(xdfSets,type = "html")
 ```
 
+#### 3. Training models
+
+The section below shows up the results obtained by fitting different kind of prediction models, and a summary of their features, errors and accuracy
+
+##### 3.1. Single Tree classification
+```{r FittingModelsTree, echo = FALSE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitTree <- train(classe ~ ., data = harTrain, method = "rpart")
+predTreeTest <- predict(modFitTree,harTest)
+```
+
+```{r FittingModelsTreeStats, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predTreeTest,harTest$classe)$table
+df <- data.frame(confusionMatrix(predTreeTest,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.2. Bagged Trees classification
+```{r FittingModelsTreeBag, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitTreeB <- train(classe ~ ., data = harTrain, method = "treebag")
+predTreeBTest <- predict(modFitTreeB,harTest)
+```
+
+```{r FittingModelsTreeBagStats, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predTreeBTest,harTest$classe)$table
+df <- data.frame(confusionMatrix(predTreeBTest,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.3. Stochatic Gradient Boosting
+```{r FittingModelsGBoo, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitGboo <- train(classe ~ ., data = harTrain, method = "gbm")
+predGBoo <- predict(modFitGboo,harTest)
+```
+
+```{r FittingModelsGBooStats, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predGBoo,harTest$classe)$table
+df <- data.frame(confusionMatrix(predGBoo,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.4. Neural Networks
+```{r FittingModelsNNet, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitNNet <- train(classe ~ ., data = harTrain, method = "nnet")
+predNNet <- predict(modFitNNet,harTest)
+```
+
+```{r FittingModelsNNetStats, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predNNet,harTest$classe)$table
+df <- data.frame(confusionMatrix(predNNet,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.5. Random Forests
+```{r FittingModelsRF, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitRF <- train(classe ~ ., data = harTrain, method = "rf", ntree = 80)
+predRF <- predict(modFitRF,harTest)
+```
+
+```{r FittingModelsRFStats, echo = FALSE, warning = FALSE, message=FALSE, cache=FALSE}
+confusionMatrix(predRF,harTest$classe)$table
+df <- data.frame(confusionMatrix(predRF,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+
+confusionMatrix(predRF,harTest$classe)$overall[1]
+```
 
 #### 4. Random Forests tests
 I've chosen 80 as the number of trees for the Random Forest algorithm because a matter of balance between processing time and accuracy. As we increase the number of trees, the train function takes longer time, however the accuracy stays more or less the same.  
@@ -138,15 +213,10 @@ As a comparative we obtained:
 **Accuracy for 20 trees:** `r round(acc20,5)`  
 **Accuracy for 50 trees:** `r round(acc50,5)`  
 **Accuracy for 80 trees:** `r round(acc80,5)`  
-**Accuracy for 100 trees:** `r round(acc100,5)`  
-
+**Accuracy for 100 trees:** `r round(acc100,5)`
 
 #### 5. Cross validation, in-sample error and out-of-sample error
 The Random Forest implementation for the train function performs **cross validation**, automatically so the training set is resampled at every run by bootstrap (25 reps).  This defaul parameter is good enough to avoid overfitting and to ensure a good cross validation.
-
-To evaluate the **in-sample error**, we can fit the training data with the model and take a look to the confusion matrix. 
-Doing so, we realize that the accuracy is 1 and the confusion matrix is completely diagonal. That means a perfect fit, somethin we could expect because the random forest tree algorithm often yields these kind of results.  
-We can worry about overfitting, but as we could see in the previous section, the **out-of-sample** error was low if we consider the accuracy of the confusion matrix for the testing set. So the model is good enough for our goal.
 
 To evaluate the **in-sample error**, we can fit the training data with the model and take a look to the confusion matrix. 
 Doing so, we realize that the accuracy is 1 and the confusion matrix is completely diagonal. That means a perfect fit, somethin we could expect because the random forest tree algorithm often yields these kind of results.  
@@ -159,7 +229,17 @@ confusionMatrix(inSampleFit,harTrain$classe)$overall[1]
 ```
 
 
-#### 6. Prediction on the final test set
+#### 6. Important variables
+Once we have fit the model we can know the most important measures just by using the R function impVar. Doing so, we can understand better the main drivers of the prediction
+
+```{r VariableImportance, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+library(ggplot2)
+vI <- varImp(modFitRF)[[1]]
+vIn <- c(rownames(vI)[1:6],"classe")
+```
+
+
+#### 7. Prediction on the final test set
 As requested in the assignment description, we need to use the chosen model to predict the classe outcome for 20 individual fresh records.  
 To do so, I've loaded and preprocessed the csv file in the same way as the training+test sets before, and then, apply the predict function over the new test set.  
 
@@ -179,19 +259,5 @@ testData$PredictedClass <- predRF80Test
 testData[,c("X","user_name","PredictedClass")]
 ``` 
 
-#### 7. File generation for answer submission
-Using the provided function to export the results of the predictions
-
-```{r ExportingResuts, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE}
-answers = predRF80Test
-pml_write_files = function(x){
-  n = length(x)
-  for(i in 1:n){
-    filename = paste0("problem_id_",i,".txt")
-    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
-  }
-}
-pml_write_files(answers)
-```
-
 The model was good enough to match all the expected predicted values !!
+
