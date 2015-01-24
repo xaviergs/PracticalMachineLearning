@@ -1,0 +1,283 @@
+```{r setoptions, echo = FALSE, warning = FALSE, message=FALSE}
+library(knitr)
+library(ggplot2)
+library(gridExtra)
+library(caret)
+library(rpart)
+library(randomForest)
+library(adabag)
+library(plyr)
+library(gbm)
+library(xtable)
+library(ipred)
+library(nnet)
+
+options(scipen = 7)
+options(digits = 4)
+
+opts_chunk$set(warning = FALSE)
+windowsFonts(A=windowsFont("Trebuchet MS"))
+setwd("C:/Users/xgs/Desktop/Coursera_Data _Science/8-Practical Machine Learning/Assignment")
+# setwd("C:/Users/xgarcia/Documents/R")
+```
+
+###Data Science Certification - Regression Models Project
+
+#### 0. Executive Summary
+The background of this assignment is to predict how well is exercice done based in the data collected by wearable devices.
+To do so, we are provided with a set of data coming from devices located in some body parts of 6 participants, which recorded acceleration measures as they perform barebell lifts.
+
+Barbell lifting has been split in 5 categories according to the correct or incorrect way of performing. The recordset can be obtained and is described at http://groupware.les.inf.puc-rio.br/har.
+The goal is to fit a prediction model on this data capable of foreseen what category of exercice performance is a person doing based on the collected acceleration measures.
+
+To do so, I've split the dataset in a training and testing set and applied different prediction models on both, so I can measure the accuracy of that prediction.
+The different approaches I choose for this exercice are: Simple Tree, Bagged Trees, Stochastic Gradient Boosting, Random Forests and Neural Networks.
+The most accurate prediction model I tried has been Random Forests. For this approach I also did some different trainings varying the number of trees used. I could see that using more than 80 trees doesn't improve the accuracy of the prediction but the computing time increases a lot.
+
+All over this paper I will show the comparative between models, the increasing accuracy of Random Forests up to a limit, and also the impact on the prediction of those variables with a higher importance on the model.
+Finally I will detail the predicted values for the 20 out of the dataset records.
+
+------
+
+#### 1. Loading and cleaning data
+After a short exploration of the dataset I set up these assumptions
+* There are many possible predictors to build the model, I should reduce its number  
+* I will remove all those variables containing NA  
+* So, I'm not doing any kind of imputation  
+* Also, near zero variables will be removed  
+
+```{r LoadCleanData, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results = FALSE}
+# Loading the raw data
+fileName <- paste(getwd(),"/pml-training.csv",sep="")
+# Blanks are converted to NA at loading time
+rawData <- read.csv(fileName, sep=",", header = TRUE, na.strings = c("","NA"))
+
+# Selection of valid columns: those not holding any NA value
+anyNA <- function(x){any(is.na(x))}
+validCols <- lapply(rawData,anyNA) == FALSE
+validCols <- names(validCols[as.vector(which(validCols == TRUE))])
+
+# First clean set of useful variables
+rawData <- rawData[,validCols]
+
+# Direct removal of other columns not useful for prediction
+rmCol <- c("X","user_name","raw_timestamp_part_1","raw_timestamp_part_2"
+           ,"cvtd_timestamp","new_window","num_window")
+iCol <- which(colnames(rawData) %in% rmCol)
+rawData <- rawData[,-iCol]
+# The cooked dataset
+setData <- rawData
+```
+After the data set up and useless columns removal, there's still a last step to do for cleaning: removing the low variability variables from the set. Because of the high number of predictors, we can get rid off those ones with near zero variability
+
+```{r RemovingLowVariabilityVariables, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
+# Identification of the near zero variables 
+iClasse <- which(names(setData) == "classe")
+nzv <- nearZeroVar(setData[,-iClasse],uniqueCut = 20, freqCut = 15)
+setData <- setData[,-nzv]
+```
+
+The predictor and outcome columns I'm going to finally use are:
+
+```{r DisplayColumns, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+names(setData)
+```
+
+#### 2. Data partitioning
+To split of the dataset into the training and test set I'm going to use the createDataPartition function of the caret package.  
+The split will be done as 70% for training and 30% for testing set, an standar proportion for prediction model building.
+
+```{r DataPartition, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+# Creating the random index for data partition
+inTrain <- createDataPartition(y = setData$classe, p = 0.7, list = FALSE)
+# Training and testing sets
+harTrain <- setData[inTrain,]
+harTest <- setData[-inTrain,]
+
+```
+
+```{r DataPartitionDisplay, echo = FALSE, warning = FALSE, message=TRUE, cache=TRUE,results='asis'}
+dfSets <- data.frame(c(nrow(harTrain),nrow(harTest)),
+      c(ncol(harTrain),ncol(harTest)))
+names(dfSets) <- c("Rows","Columns")
+rownames(dfSets) <- c("Train","Test")
+xdfSets <- xtable(dfSets)
+print(xdfSets,type = "html")
+```
+
+#### 3. Training models
+
+The section below shows up the results obtained by fitting different kind of prediction models, and a summary of their features, errors and accuracy
+
+##### 3.1. Single Tree classification
+```{r FittingModelsTree, echo = FALSE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitTree <- train(classe ~ ., data = harTrain, method = "rpart")
+predTreeTest <- predict(modFitTree,harTest)
+```
+
+```{r FittingModelsTreeStats, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predTreeTest,harTest$classe)$table
+df <- data.frame(confusionMatrix(predTreeTest,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.2. Bagged Trees classification
+```{r FittingModelsTreeBag, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitTreeB <- train(classe ~ ., data = harTrain, method = "treebag")
+predTreeBTest <- predict(modFitTreeB,harTest)
+```
+
+```{r FittingModelsTreeBagStats, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predTreeBTest,harTest$classe)$table
+df <- data.frame(confusionMatrix(predTreeBTest,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.3. Stochatic Gradient Boosting
+```{r FittingModelsGBoo, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+#modFitGboo <- train(classe ~ ., data = harTrain, method = "gbm")
+#predGBoo <- predict(modFitGboo,harTest)
+```
+
+```{r FittingModelsGBooStats, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+#confusionMatrix(predGBoo,harTest$classe)$table
+#df <- data.frame(confusionMatrix(predGBoo,harTest$classe)$overall)
+#names(df) <- c("Value")
+#df
+```
+
+##### 3.4. Neural Networks
+```{r FittingModelsNNet, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitNNet <- train(classe ~ ., data = harTrain, method = "nnet")
+predNNet <- predict(modFitNNet,harTest)
+```
+
+```{r FittingModelsNNetStats, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+confusionMatrix(predNNet,harTest$classe)$table
+df <- data.frame(confusionMatrix(predNNet,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+```
+
+##### 3.5. Random Forests
+```{r FittingModelsRF, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+# Single tree classification
+modFitRF <- train(classe ~ ., data = harTrain, method = "rf", ntree = 80)
+predRF <- predict(modFitRF,harTest)
+```
+
+```{r FittingModelsRFStats, echo = FALSE, warning = FALSE, message=FALSE, cache=FALSE}
+confusionMatrix(predRF,harTest$classe)$table
+df <- data.frame(confusionMatrix(predRF,harTest$classe)$overall)
+names(df) <- c("Value")
+df
+
+confusionMatrix(predRF,harTest$classe)$overall[1]
+```
+
+#### 4. Random Forests tests
+I've chosen 80 as the number of trees for the Random Forest algorithm because a matter of balance between processing time and accuracy. As we increase the number of trees, the train function takes longer time, however the accuracy stays more or less the same.  
+In the next chart you can see the performance as a function of the number of trees. 80 seemed to me a good cutoff value.
+
+```{r FittingModelsRF, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
+modFitRF5 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 5)
+predRF5 <- predict(modFitRF5,harTest)
+modFitRF10 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 10)
+predRF10 <- predict(modFitRF10,harTest)
+modFitRF20 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 20)
+predRF20 <- predict(modFitRF20,harTest)
+modFitRF50 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 50)
+predRF50 <- predict(modFitRF50,harTest)
+modFitRF80 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 80)
+predRF80 <- predict(modFitRF80,harTest)
+modFitRF100 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 100)
+predRF100 <- predict(modFitRF100,harTest)
+```
+
+```{r FittingModelsRFCM, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+acc5 <- confusionMatrix(predRF5,harTest$classe)$overall[1]
+acc10 <- confusionMatrix(predRF10,harTest$classe)$overall[1]
+acc20 <- confusionMatrix(predRF20,harTest$classe)$overall[1]
+acc50 <- confusionMatrix(predRF50,harTest$classe)$overall[1]
+acc80 <- confusionMatrix(predRF80,harTest$classe)$overall[1]
+acc100 <- confusionMatrix(predRF100,harTest$classe)$overall[1]
+```
+As a comparative we obtained:  
+
+**Accuracy for 5 trees:** `r round(acc5,5)`  
+**Accuracy for 10 trees:** `r round(acc10,5)`  
+**Accuracy for 20 trees:** `r round(acc20,5)`  
+**Accuracy for 50 trees:** `r round(acc50,5)`  
+**Accuracy for 80 trees:** `r round(acc80,5)`  
+**Accuracy for 100 trees:** `r round(acc100,5)`
+
+#### 5. Cross validation, in-sample error and out-of-sample error
+The Random Forest implementation for the train function performs **cross validation**, automatically so the training set is resampled at every run by bootstrap (25 reps).  This defaul parameter is good enough to avoid overfitting and to ensure a good cross validation.
+
+To evaluate the **in-sample error**, we can fit the training data with the model and take a look to the confusion matrix. 
+Doing so, we realize that the accuracy is 1 and the confusion matrix is completely diagonal. That means a perfect fit, somethin we could expect because the random forest tree algorithm often yields these kind of results.  
+We can worry about overfitting, but as we could see in the previous section, the **out-of-sample** error was low if we consider the accuracy of the confusion matrix for the testing set. So the model is good enough for our goal.
+
+```{r InSampleError, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+inSampleFit <- predict(modFitRF80,harTrain)
+confusionMatrix(inSampleFit,harTrain$classe)$table
+confusionMatrix(inSampleFit,harTrain$classe)$overall[1]
+```
+
+
+#### 6. Important variables
+Once we have fit the model we can know the most important measures just by using the R function impVar. Doing so, we can understand better the main drivers of the prediction
+
+```{r VariableImportance, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
+library(ggplot2)
+vI <- varImp(modFitRF)[[1]]
+vIn <- c(rownames(vI)[1:6],"classe")
+plotSet <- harTrain[,vIn]
+
+gObj <- ggplot(plotSet, aes(roll_belt, pitch_belt, font_family = "A"))
+gObj <- gObj + theme_bw(base_family = "A", base_size = 14)
+gObj <- gObj + facet_wrap(~ classe, ncol = 3, nrow = 2)
+gObj <- gObj + geom_point(aes(color = classe), alpha = .6)
+gObj <- gObj + theme(axis.title = element_text(family = "A", size = 16)
+                , title = element_text(family = "A", size = 20)
+                , plot.title = element_text(vjust = 2)
+                , strip.text.x = element_text(size = 15)
+                , strip.background = element_rect(fill = "snow2")
+                )
+#gObj <- gObj + ggtitle("Relationship between main variable and rest")
+
+print(gObj)
+
+
+
+```
+
+
+#### 7. Prediction on the final test set
+As requested in the assignment description, we need to use the chosen model to predict the classe outcome for 20 individual fresh records.  
+To do so, I've loaded and preprocessed the csv file in the same way as the training+test sets before, and then, apply the predict function over the new test set.  
+
+```{r LoadCleanTestData, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results = FALSE}
+# Loading the raw data
+fileName <- paste(getwd(),"/pml-testing.csv",sep="")
+# Blanks are converted to NA at loading time
+testData <- read.csv(fileName, sep=",", header = TRUE, na.strings = c("","NA"))
+```
+
+Then, apply the prediction algorithm
+
+```{r FittingModelsRFOnTestSet, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE}
+# Random tree classification
+predRF80Test <- predict(modFitRF80,testData)
+testData$PredictedClass <- predRF80Test
+testData[,c("X","user_name","PredictedClass")]
+``` 
+
+The model was good enough to match all the expected predicted values !!
+
