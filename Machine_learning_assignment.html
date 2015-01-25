@@ -64,7 +64,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 </div>
 <div id="loading-and-cleaning-data" class="section level4">
 <h4>1. Loading and cleaning data</h4>
-<p>After a short exploration of the dataset I set up these assumptions<br /><br/ >* There are many possible predictors to build the model, I should reduce its number<br />* I will remove all those variables containing NA<br />* So, I’m not doing any kind of imputation<br />* Also, near zero variables will be removed</p>
+<p>After a short exploration of the dataset I set up these assumptions<br />* There are many possible predictors to build the model, I should reduce its number<br />* I will remove all those variables containing NA<br />* So, I’m not doing any kind of imputation<br />* Also, near zero variables will be removed</p>
 <pre class="r"><code># Loading the raw data
 fileName &lt;- paste(getwd(),&quot;/pml-training.csv&quot;,sep=&quot;&quot;)
 # Blanks are converted to NA at loading time
@@ -117,7 +117,7 @@ inTrain &lt;- createDataPartition(y = setData$classe, p = 0.7, list = FALSE)
 harTrain &lt;- setData[inTrain,]
 harTest &lt;- setData[-inTrain,]</code></pre>
 <!-- html table generated in R 3.0.2 by xtable 1.7-4 package -->
-<!-- Fri Jan 23 12:17:17 2015 -->
+<!-- Fri Jan 23 12:12:35 2015 -->
 <table border="1">
 <tr> <th>  </th> <th> 
 Rows
@@ -146,12 +146,7 @@ Test
 <p>The section below shows up the results obtained by fitting different kind of prediction models, and a summary of their features, errors and accuracy</p>
 <div id="single-tree-classification" class="section level5">
 <h5>3.1. Single Tree classification</h5>
-<pre class="r"><code># Single tree classification
-modFitTree &lt;- train(classe ~ ., data = harTrain, method = &quot;rpart&quot;)
-predTreeTest &lt;- predict(modFitTree,harTest)</code></pre>
-<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predTreeTest,harTest$classe)$overall)
-names(df) &lt;- c(&quot;Value&quot;)
-df</code></pre>
+<pre class="r"><code>confusionMatrix(predTreeTest,harTest$classe)$table</code></pre>
 <pre><code>##           Reference
 ## Prediction    A    B    C    D    E
 ##          A 1509  770  494  600  230
@@ -159,23 +154,24 @@ df</code></pre>
 ##          C  163  369  532  364  372
 ##          D    0    0    0    0    0
 ##          E    2    0    0    0  480</code></pre>
+<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predTreeTest,harTest$classe)$overall)
+names(df) &lt;- c(&quot;Value&quot;)
+df</code></pre>
 <pre><code>##                    Value
-## Accuracy        0.428
-## Kappa           0.245
-## AccuracyLower   0.416
-## AccuracyUpper   0.441
-## AccuracyNull    0.284
-## AccuracyPValue  0.000
+## Accuracy        4.28e-01
+## Kappa           2.45e-01
+## AccuracyLower   4.16e-01
+## AccuracyUpper   4.41e-01
+## AccuracyNull    2.84e-01
+## AccuracyPValue 1.45e-122
 ## McnemarPValue        NaN</code></pre>
 </div>
 <div id="bagged-trees-classification" class="section level5">
 <h5>3.2. Bagged Trees classification</h5>
-<pre class="r"><code># Bagged trees classification
+<pre class="r"><code># Single tree classification
 modFitTreeB &lt;- train(classe ~ ., data = harTrain, method = &quot;treebag&quot;)
 predTreeBTest &lt;- predict(modFitTreeB,harTest)</code></pre>
-<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predTreeBTest,harTest$classe)$overall)
-names(df) &lt;- c(&quot;Value&quot;)
-df</code></pre>
+<pre class="r"><code>confusionMatrix(predTreeBTest,harTest$classe)$table</code></pre>
 <pre><code>##           Reference
 ## Prediction    A    B    C    D    E
 ##          A 1667   11    2    0    2
@@ -183,6 +179,9 @@ df</code></pre>
 ##          C    3    6 1010   16    3
 ##          D    0    4    6  942   10
 ##          E    2    1    0    2 1064</code></pre>
+<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predTreeBTest,harTest$classe)$overall)
+names(df) &lt;- c(&quot;Value&quot;)
+df</code></pre>
 <pre><code>##                Value
 ## Accuracy       0.986
 ## Kappa          0.982
@@ -194,8 +193,8 @@ df</code></pre>
 </div>
 <div id="stochatic-gradient-boosting" class="section level5">
 <h5>3.3. Stochatic Gradient Boosting</h5>
-<pre class="r"><code># Stochastic gradient classification
-modFitGboo &lt;- train(classe ~ ., data = harTrain, method = &quot;gbm&quot;)#, n.trees = 80, interaction.depth = 10)
+<pre class="r"><code># Single tree classification
+modFitGboo &lt;- train(classe ~ ., data = harTrain, method = &quot;gbm&quot;)
 predGBoo &lt;- predict(modFitGboo,harTest)</code></pre>
 <pre><code>##           Reference
 ## Prediction    A    B    C    D    E
@@ -204,21 +203,18 @@ predGBoo &lt;- predict(modFitGboo,harTest)</code></pre>
 ##          C    5   29  977   39    9
 ##          D    2    9   10  916   13
 ##          E    4    0    1    7 1040</code></pre>
-<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predGBoo,harTest$classe)$overall)
-names(df) &lt;- c(&quot;Value&quot;)
-df</code></pre>
 <pre><code>##                         Value
-## Accuracy       0.960
-## Kappa          0.949
-## AccuracyLower  0.955
-## AccuracyUpper  0.965
-## AccuracyNull   0.284
-## AccuracyPValue 0.000
-## McnemarPValue  0.000</code></pre>
+## Accuracy       0.960407816483
+## Kappa          0.949901784180
+## AccuracyLower  0.955107367455
+## AccuracyUpper  0.965245363888
+## AccuracyNull   0.284451996602
+## AccuracyPValue 0.000000000000
+## McnemarPValue  0.000000000348</code></pre>
 </div>
 <div id="neural-networks" class="section level5">
 <h5>3.4. Neural Networks</h5>
-<pre class="r"><code># Neural network classification
+<pre class="r"><code># Single tree classification
 modFitNNet &lt;- train(classe ~ ., data = harTrain, method = &quot;nnet&quot;)
 predNNet &lt;- predict(modFitNNet,harTest)</code></pre>
 <pre><code>##           Reference
@@ -228,21 +224,18 @@ predNNet &lt;- predict(modFitNNet,harTest)</code></pre>
 ##          C 597 320 737 232 350
 ##          D 284 409 195 560 416
 ##          E   1   1   0   0   0</code></pre>
-<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predNNet,harTest$classe)$overall)
-names(df) &lt;- c(&quot;Value&quot;)
-df</code></pre>
 <pre><code>##                   Value
-## Accuracy       0.399
-## Kappa          0.259
-## AccuracyLower  0.386
-## AccuracyUpper  0.411
-## AccuracyNull   0.284
-## AccuracyPValue 0.356
-## McnemarPValue  0.000</code></pre>
+## Accuracy       3.99e-01
+## Kappa          2.59e-01
+## AccuracyLower  3.86e-01
+## AccuracyUpper  4.11e-01
+## AccuracyNull   2.84e-01
+## AccuracyPValue 3.56e-79
+## McnemarPValue  0.00e+00</code></pre>
 </div>
 <div id="random-forests" class="section level5">
 <h5>3.5. Random Forests</h5>
-<pre class="r"><code># Random Forests classification
+<pre class="r"><code># Single tree classification
 modFitRF &lt;- train(classe ~ ., data = harTrain, method = &quot;rf&quot;, ntree = 80)
 predRF &lt;- predict(modFitRF,harTest)</code></pre>
 <pre><code>##           Reference
@@ -252,10 +245,7 @@ predRF &lt;- predict(modFitRF,harTest)</code></pre>
 ##          C    4    2 1016   15    1
 ##          D    0    4    2  948    4
 ##          E    0    0    0    1 1077</code></pre>
-<pre class="r"><code>df &lt;- data.frame(confusionMatrix(predRF,harTest$classe)$overall)
-names(df) &lt;- c(&quot;Value&quot;)
-df</code></pre>
-<pre><code>##                         Value
+<pre><code>##                Value
 ## Accuracy       0.992
 ## Kappa          0.990
 ## AccuracyLower  0.990
@@ -263,12 +253,13 @@ df</code></pre>
 ## AccuracyNull   0.284
 ## AccuracyPValue 0.000
 ## McnemarPValue    NaN</code></pre>
-</div>
+<pre><code>## Accuracy 
+##    0.992</code></pre>
 </div>
 </div>
 <div id="random-forests-tests" class="section level4">
 <h4>4. Random Forests tests</h4>
-<p>I’ve chosen 80 as the number of trees for the Random Forest algorithm because a matter of balance between processing time and accuracy. As we increase the number of trees, the train function takes longer time, however the accuracy stays more or less the same.<br />In the next chart you can see the performance as a function of the number of trees. 80 seemed to me a good cutoff value.</p>
+<p>After comparing all these outcomes from different approaches, I choose the random fores alghorithm to train my prediction model. The reason is the feasibility of the method and its good results for in-sample and out-of-sample errors and the fact that cross validation is performed by the own R function .<br />I’ve chosen 80 as the number of trees for the Random Forest algorithm because a matter of balance between processing time and accuracy. As we increase the number of trees, the train function takes longer time, however the accuracy stays more or less the same.<br />In the next comparison we can see the acuracy as a function of the number of trees. 80 seemed to me a good cutoff value.</p>
 <pre class="r"><code>modFitRF5 &lt;- train(classe ~ ., data = harTrain, method = &quot;rf&quot;, ntree = 5)
 predRF5 &lt;- predict(modFitRF5,harTest)
 modFitRF10 &lt;- train(classe ~ ., data = harTrain, method = &quot;rf&quot;, ntree = 10)
@@ -281,13 +272,12 @@ modFitRF80 &lt;- train(classe ~ ., data = harTrain, method = &quot;rf&quot;, ntr
 predRF80 &lt;- predict(modFitRF80,harTest)
 modFitRF100 &lt;- train(classe ~ ., data = harTrain, method = &quot;rf&quot;, ntree = 100)
 predRF100 &lt;- predict(modFitRF100,harTest)</code></pre>
-<p>As a comparative we had:</p>
-<p><strong>Accuracy for 5 trees:</strong> 0.976<br /><strong>Accuracy for 10 trees:</strong> 0.986<br /><strong>Accuracy for 20 trees:</strong> 0.99<br /><strong>Accuracy for 50 trees:</strong> 0.993<br /><strong>Accuracy for 80 trees:</strong> 0.993<br /><strong>Accuracy for 100 trees:</strong> 0.991</p>
+<p>As a comparative we obtained:</p>
+<p><strong>Accuracy for 5 trees:</strong> 0.978<br /><strong>Accuracy for 10 trees:</strong> 0.987<br /><strong>Accuracy for 20 trees:</strong> 0.99<br /><strong>Accuracy for 50 trees:</strong> 0.992<br /><strong>Accuracy for 80 trees:</strong> 0.992<br /><strong>Accuracy for 100 trees:</strong> 0.992</p>
 </div>
 <div id="cross-validation-in-sample-error-and-out-of-sample-error" class="section level4">
 <h4>5. Cross validation, in-sample error and out-of-sample error</h4>
 <p>The Random Forest implementation for the train function performs <strong>cross validation</strong>, automatically so the training set is resampled at every run by bootstrap (25 reps). This defaul parameter is good enough to avoid overfitting and to ensure a good cross validation.</p>
-<p>To evaluate the <strong>in-sample error</strong>, we can fit the training data with the model and take a look to the confusion matrix. Doing so, we realize that the accuracy is 1 and the confusion matrix is completely diagonal. That means a perfect fit, somethin we could expect because the random forest tree algorithm often yields these kind of results.<br />We can worry about overfitting, but as we could see in the previous section, the <strong>out-of-sample</strong> error was low if we consider the accuracy of the confusion matrix for the testing set. So the model is good enough for our goal.</p>
 <p>To evaluate the <strong>in-sample error</strong>, we can fit the training data with the model and take a look to the confusion matrix. Doing so, we realize that the accuracy is 1 and the confusion matrix is completely diagonal. That means a perfect fit, somethin we could expect because the random forest tree algorithm often yields these kind of results.<br />We can worry about overfitting, but as we could see in the previous section, the <strong>out-of-sample</strong> error was low if we consider the accuracy of the confusion matrix for the testing set. So the model is good enough for our goal.</p>
 <pre class="r"><code>inSampleFit &lt;- predict(modFitRF80,harTrain)
 confusionMatrix(inSampleFit,harTrain$classe)$table</code></pre>
@@ -302,9 +292,19 @@ confusionMatrix(inSampleFit,harTrain$classe)$table</code></pre>
 <pre><code>## Accuracy 
 ##        1</code></pre>
 </div>
-
+<div id="important-variables" class="section level4">
+<h4>6. Important variables</h4>
+<p>Once we have fit the model we can know the most important measures just by using the R function impVar. Doing so, we can understand better the main drivers of the prediction</p>
+<pre class="r"><code>library(ggplot2)
+vI &lt;- varImp(modFitRF)[[1]]
+vIn &lt;- c(rownames(vI)[1:6],&quot;classe&quot;)
+vIn</code></pre>
+<pre><code>## [1] &quot;roll_belt&quot;        &quot;pitch_belt&quot;       &quot;yaw_belt&quot;        
+## [4] &quot;total_accel_belt&quot; &quot;gyros_belt_x&quot;     &quot;gyros_belt_y&quot;    
+## [7] &quot;classe&quot;</code></pre>
+</div>
 <div id="prediction-on-the-final-test-set" class="section level4">
-<h4>6. Prediction on the final test set</h4>
+<h4>7. Prediction on the final test set</h4>
 <p>As requested in the assignment description, we need to use the chosen model to predict the classe outcome for 20 individual fresh records.<br />To do so, I’ve loaded and preprocessed the csv file in the same way as the training+test sets before, and then, apply the predict function over the new test set.</p>
 <pre class="r"><code># Loading the raw data
 fileName &lt;- paste(getwd(),&quot;/pml-testing.csv&quot;,sep=&quot;&quot;)
@@ -336,25 +336,13 @@ testData[,c(&quot;X&quot;,&quot;user_name&quot;,&quot;PredictedClass&quot;)]</co
 ## 18 18  carlitos              B
 ## 19 19     pedro              B
 ## 20 20    eurico              B</code></pre>
-</div>
-<div id="file-generation-for-answer-submission" class="section level4">
-<h4>7. File generation for answer submission</h4>
-<p>Using the provided function to export the results of the predictions</p>
-<pre class="r"><code>answers = predRF80Test
-pml_write_files = function(x){
-  n = length(x)
-  for(i in 1:n){
-    filename = paste0(&quot;problem_id_&quot;,i,&quot;.txt&quot;)
-    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
-  }
-}
-pml_write_files(answers)</code></pre>
-<p>The model was good enough to match all the expected predicted values !!</p>
+<p>The model is good enough to match all the expected predicted values !!</p>
 </div>
 </div>
 
 
 </div>
+
 <script>
 
 // add bootstrap table styles to pandoc tables

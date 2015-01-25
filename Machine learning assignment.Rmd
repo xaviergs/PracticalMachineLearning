@@ -13,7 +13,7 @@ library(ipred)
 library(nnet)
 
 options(scipen = 7)
-options(digits = 4)
+options(digits = 3)
 
 opts_chunk$set(warning = FALSE)
 windowsFonts(A=windowsFont("Trebuchet MS"))
@@ -38,7 +38,7 @@ Finally I will detail the predicted values for the 20 out of the dataset records
 ------
 
 #### 1. Loading and cleaning data
-After a short exploration of the dataset I set up these assumptions
+After a short exploration of the dataset I set up these assumptions  
 * There are many possible predictors to build the model, I should reduce its number  
 * I will remove all those variables containing NA  
 * So, I'm not doing any kind of imputation  
@@ -108,7 +108,7 @@ print(xdfSets,type = "html")
 The section below shows up the results obtained by fitting different kind of prediction models, and a summary of their features, errors and accuracy
 
 ##### 3.1. Single Tree classification
-```{r FittingModelsTree, echo = FALSE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+```{r FittingModelsTree, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
 # Single tree classification
 modFitTree <- train(classe ~ ., data = harTrain, method = "rpart")
 predTreeTest <- predict(modFitTree,harTest)
@@ -122,7 +122,7 @@ df
 ```
 
 ##### 3.2. Bagged Trees classification
-```{r FittingModelsTreeBag, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+```{r FittingModelsTreeBag, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
 # Single tree classification
 modFitTreeB <- train(classe ~ ., data = harTrain, method = "treebag")
 predTreeBTest <- predict(modFitTreeB,harTest)
@@ -136,7 +136,7 @@ df
 ```
 
 ##### 3.3. Stochatic Gradient Boosting
-```{r FittingModelsGBoo, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+```{r FittingModelsGBoo, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
 # Single tree classification
 modFitGboo <- train(classe ~ ., data = harTrain, method = "gbm")
 predGBoo <- predict(modFitGboo,harTest)
@@ -150,7 +150,7 @@ df
 ```
 
 ##### 3.4. Neural Networks
-```{r FittingModelsNNet, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+```{r FittingModelsNNet, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
 # Single tree classification
 modFitNNet <- train(classe ~ ., data = harTrain, method = "nnet")
 predNNet <- predict(modFitNNet,harTest)
@@ -164,13 +164,13 @@ df
 ```
 
 ##### 3.5. Random Forests
-```{r FittingModelsRF, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results='hide'}
+```{r FittingModelsRF, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
 # Single tree classification
 modFitRF <- train(classe ~ ., data = harTrain, method = "rf", ntree = 80)
 predRF <- predict(modFitRF,harTest)
 ```
 
-```{r FittingModelsRFStats, echo = FALSE, warning = FALSE, message=FALSE, cache=FALSE}
+```{r FittingModelsRFStats, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
 confusionMatrix(predRF,harTest$classe)$table
 df <- data.frame(confusionMatrix(predRF,harTest$classe)$overall)
 names(df) <- c("Value")
@@ -180,10 +180,11 @@ confusionMatrix(predRF,harTest$classe)$overall[1]
 ```
 
 #### 4. Random Forests tests
+After comparing all these outcomes from different approaches, I choose the random fores alghorithm to train my prediction model. The reason is the feasibility of the method and its good results for in-sample and out-of-sample errors and the fact that cross validation is performed by the own R function .   
 I've chosen 80 as the number of trees for the Random Forest algorithm because a matter of balance between processing time and accuracy. As we increase the number of trees, the train function takes longer time, however the accuracy stays more or less the same.  
-In the next chart you can see the performance as a function of the number of trees. 80 seemed to me a good cutoff value.
+In the next comparison we can see the acuracy as a function of the number of trees. 80 seemed to me a good cutoff value.
 
-```{r FittingModelsRF, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
+```{r ComparingRF, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results='hide'}
 modFitRF5 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 5)
 predRF5 <- predict(modFitRF5,harTest)
 modFitRF10 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 10)
@@ -198,7 +199,7 @@ modFitRF100 <- train(classe ~ ., data = harTrain, method = "rf", ntree = 100)
 predRF100 <- predict(modFitRF100,harTest)
 ```
 
-```{r FittingModelsRFCM, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
+```{r ComparingRFStats, echo = FALSE, warning = FALSE, message=FALSE, cache=TRUE}
 acc5 <- confusionMatrix(predRF5,harTest$classe)$overall[1]
 acc10 <- confusionMatrix(predRF10,harTest$classe)$overall[1]
 acc20 <- confusionMatrix(predRF20,harTest$classe)$overall[1]
@@ -206,6 +207,7 @@ acc50 <- confusionMatrix(predRF50,harTest$classe)$overall[1]
 acc80 <- confusionMatrix(predRF80,harTest$classe)$overall[1]
 acc100 <- confusionMatrix(predRF100,harTest$classe)$overall[1]
 ```
+
 As a comparative we obtained:  
 
 **Accuracy for 5 trees:** `r round(acc5,5)`  
@@ -236,6 +238,7 @@ Once we have fit the model we can know the most important measures just by using
 library(ggplot2)
 vI <- varImp(modFitRF)[[1]]
 vIn <- c(rownames(vI)[1:6],"classe")
+vIn
 ```
 
 
@@ -243,7 +246,7 @@ vIn <- c(rownames(vI)[1:6],"classe")
 As requested in the assignment description, we need to use the chosen model to predict the classe outcome for 20 individual fresh records.  
 To do so, I've loaded and preprocessed the csv file in the same way as the training+test sets before, and then, apply the predict function over the new test set.  
 
-```{r LoadCleanTestData, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE, results = FALSE}
+```{r LoadCleanTestData, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE, results = FALSE}
 # Loading the raw data
 fileName <- paste(getwd(),"/pml-testing.csv",sep="")
 # Blanks are converted to NA at loading time
@@ -252,12 +255,11 @@ testData <- read.csv(fileName, sep=",", header = TRUE, na.strings = c("","NA"))
 
 Then, apply the prediction algorithm
 
-```{r FittingModelsRFOnTestSet, echo = TRUE, warning = FALSE, message=FALSE, cache=FALSE}
+```{r FittingModelsRFOnTestSet, echo = TRUE, warning = FALSE, message=FALSE, cache=TRUE}
 # Random tree classification
 predRF80Test <- predict(modFitRF80,testData)
 testData$PredictedClass <- predRF80Test
 testData[,c("X","user_name","PredictedClass")]
 ``` 
 
-The model was good enough to match all the expected predicted values !!
-
+The model is good enough to match all the expected predicted values !!
