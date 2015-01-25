@@ -158,12 +158,12 @@ Test
 names(df) &lt;- c(&quot;Value&quot;)
 df</code></pre>
 <pre><code>##                    Value
-## Accuracy        4.28e-01
-## Kappa           2.45e-01
-## AccuracyLower   4.16e-01
-## AccuracyUpper   4.41e-01
-## AccuracyNull    2.84e-01
-## AccuracyPValue 1.45e-122
+## Accuracy        0.428
+## Kappa           0.245
+## AccuracyLower   0.416
+## AccuracyUpper   0.441
+## AccuracyNull    0.284
+## AccuracyPValue  0.000
 ## McnemarPValue        NaN</code></pre>
 </div>
 <div id="bagged-trees-classification" class="section level5">
@@ -204,13 +204,13 @@ predGBoo &lt;- predict(modFitGboo,harTest)</code></pre>
 ##          D    2    9   10  916   13
 ##          E    4    0    1    7 1040</code></pre>
 <pre><code>##                         Value
-## Accuracy       0.960407816483
-## Kappa          0.949901784180
-## AccuracyLower  0.955107367455
-## AccuracyUpper  0.965245363888
-## AccuracyNull   0.284451996602
-## AccuracyPValue 0.000000000000
-## McnemarPValue  0.000000000348</code></pre>
+## Accuracy       0.960
+## Kappa          0.949
+## AccuracyLower  0.955
+## AccuracyUpper  0.965
+## AccuracyNull   0.284
+## AccuracyPValue 0.000
+## McnemarPValue  0.000</code></pre>
 </div>
 <div id="neural-networks" class="section level5">
 <h5>3.4. Neural Networks</h5>
@@ -225,13 +225,13 @@ predNNet &lt;- predict(modFitNNet,harTest)</code></pre>
 ##          D 284 409 195 560 416
 ##          E   1   1   0   0   0</code></pre>
 <pre><code>##                   Value
-## Accuracy       3.99e-01
-## Kappa          2.59e-01
-## AccuracyLower  3.86e-01
-## AccuracyUpper  4.11e-01
-## AccuracyNull   2.84e-01
-## AccuracyPValue 3.56e-79
-## McnemarPValue  0.00e+00</code></pre>
+## Accuracy       0.399
+## Kappa          0.259
+## AccuracyLower  0.386
+## AccuracyUpper  0.411
+## AccuracyNull   0.284
+## AccuracyPValue 0.356
+## McnemarPValue  0.000</code></pre>
 </div>
 <div id="random-forests" class="section level5">
 <h5>3.5. Random Forests</h5>
